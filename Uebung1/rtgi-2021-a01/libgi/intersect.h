@@ -2,6 +2,7 @@
 
 #include "rt.h"
 #include<iostream>
+
 struct aabb
 {
 	vec3 min, max;
@@ -28,29 +29,47 @@ inline float calculateDeterminante(vec3 a, vec3 b, vec3 c)
 // See Shirley (2nd Ed.), pp. 206. (library or excerpt online)
 inline bool intersect(const triangle &t, const vertex *vertices, const ray &ray, triangle_intersection &info)
 {
-	// todo
 	float oX = ray.o.x;
 	float oY = ray.o.y;
 	float oZ = ray.o.z;
+	std::cout << "oX: " << oX << std::endl;
+	std::cout << "oY: " << oY << std::endl;
+	std::cout << "oZ: " << oZ << std::endl;
+
 
 	float dX = ray.d.x;
 	float dY = ray.d.y;
 	float dZ = ray.d.z;
+	std::cout << "dX: " << dX << std::endl;
+	std::cout << "dY: " << dY << std::endl;
+	std::cout << "dZ: " << dZ << std::endl;
 
 	vec3 aPos = vertices[t.a].pos;
 	float aX = aPos.x;
 	float aY = aPos.y;
 	float aZ = aPos.z;
+	std::cout << "aPos: " << aPos << std::endl;
+	std::cout << "aX: " << aX << std::endl;
+	std::cout << "aY: " << aY << std::endl;
+	std::cout << "aZ: " << aZ << std::endl;
 
 	vec3 bPos = vertices[t.b].pos;
 	float bX = bPos.x;
 	float bY = bPos.y;
 	float bZ = bPos.z;
+	std::cout << "bPos: " << bPos << std::endl;
+	std::cout << "bX: " << bX << std::endl;
+	std::cout << "bY: " << bY << std::endl;
+	std::cout << "bZ: " << bZ << std::endl;
 
 	vec3 cPos = vertices[t.c].pos;
 	float cX = cPos.x;
 	float cY = cPos.y;
 	float cZ = cPos.z;
+	std::cout << "cPos: " << cPos << std::endl;
+	std::cout << "cX: " << cX << std::endl;
+	std::cout << "cY: " << cY << std::endl;
+	std::cout << "cZ: " << cZ << std::endl;
 
 	float vecAOx = aX - oX;
 	float vecAOy = aY - oY;
@@ -65,21 +84,32 @@ inline bool intersect(const triangle &t, const vertex *vertices, const ray &ray,
 	float vecACz = aZ - aZ;
 
 	vec3 AO = vec3(vecAOx, vecAOy, vecAOz);
+	std::cout << "AO: " << AO << std::endl;
 	vec3 AB = vec3(vecABx, vecABy, vecABz);
+	std::cout << "AB: " << AB << std::endl;
 	vec3 AC = vec3(vecACx, vecACy, vecACz);
+	std::cout << "AC: " << AC << std::endl;
 	vec3 D = vec3(dX, dY, dZ);
+	std::cout << "D: " << D << std::endl;
 
 	float detA = calculateDeterminante(AB, AC, D);
+	std::cout << "detA: " << detA << std::endl;
 
 	float beta = calculateDeterminante(AO, AC, D) / detA;
+	std::cout << "beta: " << beta << std::endl;
 	float gamma = calculateDeterminante(AB, AO, D) / detA;
-	float tRay = calculateDeterminante(AB, AC, AO) / detA;
+	std::cout << "gamma: " << gamma << std::endl;
+	float tRay = - (calculateDeterminante(AB, AC, AO) / detA);
+	std::cout << "tRay: " << tRay << std::endl;
 
 	if (tRay >= 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1)
 	{
-		cout << "Intersection with triangle.";
+		std::cout << "Intersection with triangle." << std::endl;
+		info.t = tRay;
+		info.beta = beta;
+		info.gamma = gamma;
 		return true;
 	}
-	cout << "No intersection with triangle.";
+	std::cout << "No intersection with triangle." << std::endl;
 	return false;
 }

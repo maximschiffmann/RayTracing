@@ -16,9 +16,6 @@ using namespace std;
 gi_algorithm::sample_result primary_hit_display::sample_pixel(uint32_t x, uint32_t y, uint32_t samples) {
 	sample_result result;
 	// todo: implement primary hitpoint algorithm
-
-	cout << "Primary hit: " << endl;
-
 	result.push_back({vec3(0),vec2(0)});
 	return result;
 }

@@ -68,8 +68,31 @@ void rt_bench() {
 
 int main(int argc, char **argv)
 {
+
+	vec3 a = vec3(-10, 0, 0);
+	vec3 b = vec3(10, -10, 0);
+	vec3 c = vec3(0, 10, 0);
+
+	vertex ver[3];
+	ver[0].pos = a;
+	ver[1].pos = b;
+	ver[2].pos = c;
+
+	triangle tri;
+	tri.a = 0;
+	tri.b = 1;
+	tri.c = 2;
+
+	vec3 o = vec3(0, 0, -2);
+	vec3 d = vec3(0, 0, -1);
+	ray r = ray(o, d);
+
+	triangle_intersection info;
+
+	intersect(tri, ver, r, info);
+
 	parse_cmdline(argc, argv);
-	cout << "argv[0];";
+
 	repl_update_checks uc;
 	if (cmdline.script != "") {
 		ifstream script(cmdline.script);
