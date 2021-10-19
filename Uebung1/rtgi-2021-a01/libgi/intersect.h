@@ -77,7 +77,9 @@ inline bool intersect(const triangle &t, const vertex *vertices, const ray &ray,
 
 	if (tRay >= 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1)
 	{
+		cout << "Intersection with triangle.";
 		return true;
 	}
+	cout << "No intersection with triangle.";
 	return false;
 }
