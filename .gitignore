@@ -1,0 +1,13 @@
+*.log
+*.o
+*.vscode
+rtgi
+.png
+test.obj
+.deps
+*.Po
+Makefile
+*.a
+config.h
+config.status
+stamp-h1
