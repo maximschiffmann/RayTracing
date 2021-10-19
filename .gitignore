@@ -2,7 +2,7 @@
 *.o
 *.vscode
 rtgi
-.png
+out.png
 test.obj
 .deps
 *.Po
