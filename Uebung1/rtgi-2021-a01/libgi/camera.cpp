@@ -11,14 +11,26 @@ using namespace std;
 ray cam_ray(const camera &cam, int x, int y, vec2 offset) {
 	// todo: compute the camera rays for each pixel.
 	// note: you can use the following function to export them as an obj model and look at them in blender.
+	
+	// vec3 U = cross(cam.dir, cam.up);
+	// vec3 V = cross(U, cam.dir);
+	// float px = ((float)x + 0.5f + offset.x) / (float)cam.w * 2.0f - 1.0f;
+	// float py = ((float)y + 0.5f + offset.y) / (float)cam.h * 2.0f - 1.0f;
+	// px = px * cam.near_w;
+	// py = py * cam.near_h;
+	// vec3 d = normalize(cam.dir + U * px + V * py);
+	// return ray(cam.pos, d);
+
+	// find basis
 	vec3 U = cross(cam.dir, cam.up);
 	vec3 V = cross(U, cam.dir);
-	float px = ((float)x + 0.5f + offset.x) / (float)cam.w * 2.0f - 1.0f;
-	float py = ((float)y + 0.5f + offset.y) / (float)cam.h * 2.0f - 1.0f;
-	px = px * cam.near_w;
-	py = py * cam.near_h;
-	vec3 d = normalize(cam.dir + U * px + V * py);
-	return ray(cam.pos, d);
+	// pixel position on near plane
+	float u = ((float)x+0.5f+offset.x)/(float)cam.w * 2.0f - 1.0f;	// \in (-1,1)
+	float v = ((float)y+0.5f+offset.y)/(float)cam.h * 2.0f - 1.0f;
+	u = cam.near_w * u;	// \in (-near_w,near_w)
+	v = cam.near_h * v;
+	// near is implicitly at 1 (as per tanf above)
+	return ray(cam.pos, normalize(cam.dir + U*u + V*v));
 }
 
 void test_camrays(const camera &camera, int stride) {
