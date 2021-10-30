@@ -19,17 +19,17 @@ struct aabb
 	}
 };
 
-// inline float calculateDeterminante(vec3 a, vec3 b, vec3 c)
-// {
-// 	float result = (a.x * b.y * c.z) + (b.x * c.y * a.z) + (c.x * a.y * b.z) - (a.z * b.y * c.x) - (b.z * c.y * a.x) - (c.z * a.y * b.x);
+inline float calculateDeterminante(vec3 a, vec3 b, vec3 c)
+{
+	float result = (a.x * b.y * c.z) + (b.x * c.y * a.z) + (c.x * a.y * b.z) - (a.z * b.y * c.x) - (b.z * c.y * a.x) - (c.z * a.y * b.x);
 
-// 	return result;
-// }
+	return result;
+}
 
 // See Shirley (2nd Ed.), pp. 206. (library or excerpt online)
 inline bool intersect(const triangle &t, const vertex *vertices, const ray &ray, triangle_intersection &info)
 {
-	/*
+	
 	float oX = ray.o.x;
 	float oY = ray.o.y;
 	float oZ = ray.o.z;
@@ -100,7 +100,7 @@ inline bool intersect(const triangle &t, const vertex *vertices, const ray &ray,
 //	std::cout << "beta: " << beta << std::endl;
 	float gamma = calculateDeterminante(AB, AO, D) / detA;
 //	std::cout << "gamma: " << gamma << std::endl;
-	float tRay = - (calculateDeterminante(AB, AC, AO) / detA);
+	float tRay = (calculateDeterminante(AB, AC, AO) / detA);
 //	std::cout << "tRay: " << tRay << std::endl;
 
 	if (tRay >= 0 && beta >= 0 && gamma >= 0 && beta + gamma <= 1)
@@ -113,55 +113,56 @@ inline bool intersect(const triangle &t, const vertex *vertices, const ray &ray,
 	}
 	// std::cout << "No intersection with triangle." << std::endl;
 	return false;
-	*/
-
-	vec3 pos = vertices[t.a].pos;
-	const float a_x = pos.x;
-	const float a_y = pos.y;
-	const float a_z = pos.z;
-
-	pos = vertices[t.b].pos;
-	const float &a = a_x - pos.x;
-	const float &b = a_y - pos.y;
-	const float &c = a_z - pos.z;
 	
-	pos = vertices[t.c].pos;
-	const float &d = a_x - pos.x;
-	const float &e = a_y - pos.y;
-	const float &f = a_z - pos.z;
+
+	/////////////////////////////////////////////////////////////////
+	// vec3 pos = vertices[t.a].pos;
+	// const float a_x = pos.x;
+	// const float a_y = pos.y;
+	// const float a_z = pos.z;
+
+	// pos = vertices[t.b].pos;
+	// const float &a = a_x - pos.x;
+	// const float &b = a_y - pos.y;
+	// const float &c = a_z - pos.z;
 	
-	const float &g = ray.d.x;
-	const float &h = ray.d.y;
-	const float &i = ray.d.z;
+	// pos = vertices[t.c].pos;
+	// const float &d = a_x - pos.x;
+	// const float &e = a_y - pos.y;
+	// const float &f = a_z - pos.z;
 	
-	const float &j = a_x - ray.o.x;
-	const float &k = a_y - ray.o.y;
-	const float &l = a_z - ray.o.z;
+	// const float &g = ray.d.x;
+	// const float &h = ray.d.y;
+	// const float &i = ray.d.z;
+	
+	// const float &j = a_x - ray.o.x;
+	// const float &k = a_y - ray.o.y;
+	// const float &l = a_z - ray.o.z;
 
-	float common1 = e*i - h*f;
-	float common2 = g*f - d*i;
-	float common3 = d*h - e*g;
-	float M 	  = a * common1  +  b * common2  +  c * common3;
-	float beta 	  = j * common1  +  k * common2  +  l * common3;
+	// float common1 = e*i - h*f;
+	// float common2 = g*f - d*i;
+	// float common3 = d*h - e*g;
+	// float M 	  = a * common1  +  b * common2  +  c * common3;
+	// float beta 	  = j * common1  +  k * common2  +  l * common3;
 
-	common1       = a*k - j*b;
-	common2       = j*c - a*l;
-	common3       = b*l - k*c;
-	float gamma   = i * common1  +  h * common2  +  g * common3;
-	float tt    = -(f * common1  +  e * common2  +  d * common3);
+	// common1       = a*k - j*b;
+	// common2       = j*c - a*l;
+	// common3       = b*l - k*c;
+	// float gamma   = i * common1  +  h * common2  +  g * common3;
+	// float tt    = -(f * common1  +  e * common2  +  d * common3);
 
-	beta /= M;
-	gamma /= M;
-	tt /= M;
+	// beta /= M;
+	// gamma /= M;
+	// tt /= M;
 
-	if (tt > ray.t_min && tt < ray.t_max)
-		if (beta > 0 && gamma > 0 && beta + gamma <= 1)
-		{
-			info.t = tt;
-			info.beta = beta;
-			info.gamma = gamma;
-			return true;
-		}
+	// if (tt > ray.t_min && tt < ray.t_max)
+	// 	if (beta > 0 && gamma > 0 && beta + gamma <= 1)
+	// 	{
+	// 		info.t = tt;
+	// 		info.beta = beta;
+	// 		info.gamma = gamma;
+	// 		return true;
+	// 	}
 
-	return false;
+	// return false;
 }

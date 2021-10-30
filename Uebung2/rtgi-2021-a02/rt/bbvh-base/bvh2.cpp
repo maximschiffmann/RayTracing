@@ -192,15 +192,114 @@ typename std::enable_if<LO!=bbvh_triangle_layout::flat,void>::type binary_bvh_tr
 template<bbvh_triangle_layout tr_layout, bbvh_esc_mode esc_mode>
 uint32_t binary_bvh_tracer<tr_layout, esc_mode>::subdivide_om(std::vector<prim> &prims, std::vector<uint32_t> &index, uint32_t start, uint32_t end) {
 	// todo
-	std::logic_error("Not implemented, yet");
-	return 0;
+	assert(start < end);
+	auto p = [&](uint32_t i) { return prims[index[i]]; };
+
+	// Rekursionsabbruch: Nur noch ein Dreieck in der Liste
+	if (end-start <= max_triangles_per_node) {
+		uint32_t id = nodes.size();
+		nodes.emplace_back();
+		nodes[id].tri_offset(start);
+		nodes[id].tri_count(end - start);
+		return id;
+	}
+
+	// Bestimmen der Bounding Box der (Teil-)Szene
+	aabb box;
+	for (int i = start; i < end; ++i)
+		box.grow(p(i));
+
+	// Sortieren nach der größten Achse
+	vec3 extent = box.max - box.min;
+	float largest = max(extent.x, max(extent.y, extent.z));
+	if (largest == extent.x)
+		std::sort(index.data()+start, index.data()+end,
+				  [&](uint32_t a, uint32_t b) { return prims[a].center().x < prims[b].center().x; });
+	else if (largest == extent.y)
+		std::sort(index.data()+start, index.data()+end,
+				  [&](uint32_t a, uint32_t b) { return prims[a].center().y < prims[b].center().y; });
+	else 
+		std::sort(index.data()+start, index.data()+end,
+				  [&](uint32_t a, uint32_t b) { return prims[a].center().z < prims[b].center().z; });
+
+	// In der Mitte zerteilen
+	int mid = start + (end-start)/2;
+	uint32_t id = nodes.size();
+	nodes.emplace_back();
+	uint32_t l = subdivide_om(prims, index, start, mid);
+	uint32_t r = subdivide_om(prims, index, mid,   end);
+	nodes[id].link_l = l;
+	nodes[id].link_r = r;
+	for (int i = start; i < mid; ++i) nodes[id].box_l.grow(p(i));
+	for (int i = mid;   i < end; ++i) nodes[id].box_r.grow(p(i));
+	return id;
+	// std::logic_error("Not implemented, yet");
+	// return 0;
 }
 
 template<bbvh_triangle_layout tr_layout, bbvh_esc_mode esc_mode>
 uint32_t binary_bvh_tracer<tr_layout, esc_mode>::subdivide_sm(std::vector<prim> &prims, std::vector<uint32_t> &index, uint32_t start, uint32_t end) {
-	// todo (optional)
-	std::logic_error("Not implemented, yet");
-	return 0;
+	assert(start < end);
+	auto p = [&](uint32_t i) { return prims[index[i]]; };
+
+	// Rekursionsabbruch: Nur noch ein Dreieck in der Liste
+	if (end-start <= max_triangles_per_node) {
+		uint32_t id = nodes.size();
+		nodes.emplace_back();
+		nodes[id].tri_offset(start);
+		nodes[id].tri_count(end - start);
+		return id;
+	}
+
+	// Bestimmen der Bounding Box der (Teil-)Szene
+	aabb box;
+	for (int i = start; i < end; ++i)
+		box.grow(p(i));
+
+	// Bestimme und halbiere die größte Achse, sortiere die Dreieck(Schwerpunkt entscheidet) auf die richtige Seite
+	// Nutze Object Median wenn Spatial Median in leeren Knoten resultiert
+	vec3 extent = box.max - box.min;
+	float largest = max(extent.x, max(extent.y, extent.z));
+	float spatial_median;
+	int mid = start;
+	uint32_t* current_left  = index.data() + start;
+	uint32_t* current_right = index.data() + end-1;
+
+	auto sort_sm = [&](auto component_selector) {
+		float spatial_median = component_selector(box.min + (box.max - box.min)*0.5f);
+		while (current_left < current_right) {
+			while (component_selector(prims[*current_left].center()) <= spatial_median && current_left < current_right) {
+				current_left++;
+				mid++;
+			}
+			while (component_selector(prims[*current_right].center()) > spatial_median && current_left < current_right) {
+				current_right--;
+			}
+			if (component_selector(prims[*current_left].center()) > component_selector(prims[*current_right].center()) && current_left < current_right)
+				std::swap(*current_left, *current_right);
+		}
+		if (mid == start || mid == end-1)  {
+			std::sort(index.data()+start, index.data()+end,
+			          [&](uint32_t a, uint32_t b) { return component_selector(prims[a].center()) < component_selector(prims[b].center()); });
+			mid = start + (end-start)/2;
+		}
+	};
+	
+	if (largest == extent.x)      sort_sm([](const vec3 &v) { return v.x; });
+	else if (largest == extent.y) sort_sm([](const vec3 &v) { return v.y; });
+	else                          sort_sm([](const vec3 &v) { return v.z; });
+
+	uint32_t id = nodes.size();
+	nodes.emplace_back();
+	uint32_t l = subdivide_sm(prims, index, start, mid);
+	uint32_t r = subdivide_sm(prims, index, mid,   end);
+	nodes[id].link_l = l;
+	nodes[id].link_r = r;
+	for (int i = start; i < mid; ++i) nodes[id].box_l.grow(p(i));
+	for (int i = mid;   i < end; ++i) nodes[id].box_r.grow(p(i));
+	return id;
+	// std::logic_error("Not implemented, yet");
+	// return 0;
 }
 
 template<bbvh_triangle_layout tr_layout, bbvh_esc_mode esc_mode>
