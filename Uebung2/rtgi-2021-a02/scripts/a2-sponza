@@ -3,8 +3,8 @@ at -516 300 0
 look 1 0 0
 up 0 1 0
 load render-data/sponza/sponza.fixed.obj
-raytracer naive-bvh
-#raytracer bbvh
+# raytracer naive-bvh
+raytracer bbvh sam
 commit
 algo primary
 sppx 32

@@ -305,24 +305,212 @@ uint32_t binary_bvh_tracer<tr_layout, esc_mode>::subdivide_sm(std::vector<prim> 
 template<bbvh_triangle_layout tr_layout, bbvh_esc_mode esc_mode>
 uint32_t binary_bvh_tracer<tr_layout, esc_mode>::subdivide_sah(std::vector<prim> &prims, std::vector<uint32_t> &index, uint32_t start, uint32_t end) {
 	// todo (highly optional)
-	std::logic_error("Not implemented, yet");
-	return 0;
+	assert(start < end);
+	auto p = [&](uint32_t i) { return prims[index[i]]; };
+
+	// Rekursionsabbruch: Nur noch ein Dreieck in der Liste
+	if (end-start <= max_triangles_per_node) {
+		uint32_t id = nodes.size();
+		nodes.emplace_back();
+		nodes[id].tri_offset(start);
+		nodes[id].tri_count(end - start);
+		return id;
+	}
+
+	// Hilfsfunktionen
+	auto box_surface = [&](const aabb &box) {
+		vec3 extent = box.max - box.min;
+		return (2*(extent.x*extent.y+extent.x*extent.z+extent.y*extent.z));
+	};
+		
+	// Bestimmen der Bounding Box der (Teil-)Szene
+	aabb box;
+	for (int i = start; i < end; ++i)
+		box.grow(p(i));
+
+	// Teile die Box mit plane, sortiere die Dreiecke(Schwerpunkt entscheidet) auf die richtige Seite
+	// bestimme box links, box rechts mit den jeweiligen kosten
+	// Nutze Object Median wenn SAH plane in leeren Knoten resultiert
+	// speichere mid, box links und box rechts für minimale gesamt Kosten
+	vec3 extent = box.max - box.min;
+	float largest = max(extent.x, max(extent.y, extent.z));
+	float sah_cost_left = FLT_MAX;
+	float sah_cost_right = FLT_MAX;
+	int mid = start;
+	bool use_om = true;
+	aabb box_l, box_r;
+	
+	auto split = [&](auto component_selector, float plane) {
+		int current_mid = start;
+		uint32_t* current_left  = index.data() + start;
+		uint32_t* current_right = index.data() + end-1;
+		aabb current_box_l, current_box_r;
+		while (current_left < current_right) {
+			while (component_selector(prims[*current_left].center()) <= plane && current_left < current_right) {
+				current_left++;
+				current_mid++;
+			}
+			while (component_selector(prims[*current_right].center()) > plane && current_left < current_right) {
+				current_right--;
+			}
+			if(component_selector(prims[*current_left].center()) > component_selector(prims[*current_right].center()) && current_left < current_right) {
+				std::swap(*current_left, *current_right);
+			}
+		}
+		if(current_mid == start || current_mid == end-1) {
+			if (!use_om)
+				return;
+			std::sort(index.data()+start, index.data()+end,
+					  [&](uint32_t a, uint32_t b) { return component_selector(prims[a].center()) < component_selector(prims[b].center()); });
+			current_mid = start + (end-start)/2;
+			use_om = false;
+		}
+		for (int i = start; i < current_mid; ++i) current_box_l.grow(p(i));
+		for (int i = current_mid;   i < end; ++i) current_box_r.grow(p(i));
+		float sah_cost_current_left = (box_surface(current_box_l)/box_surface(box))*(current_mid-start);
+		float sah_cost_current_right = (box_surface(current_box_r)/box_surface(box))*(end-current_mid);
+		if (sah_cost_current_left + sah_cost_current_right < sah_cost_left + sah_cost_right) {
+			box_l = current_box_l;
+			box_r = current_box_r;
+			sah_cost_left = sah_cost_current_left;
+			sah_cost_right = sah_cost_current_right;
+			mid = current_mid;
+		}
+	};
+	//Teile aktuelle Box mit NR_OF_PLANES gleichverteilten Ebenen
+	//Anzahl der Ebenen=Anzahl der Dreiecke, wenn die Anzahl der Dreiecke kleiner als die Anzahl der Ebenen ist
+	int current_number_of_planes = number_of_planes;
+	if (end-start < current_number_of_planes) {
+		current_number_of_planes = end-start;
+	}
+	if (largest == extent.x) {
+		for (int i = 0; i < current_number_of_planes; ++i) {
+			split([](const vec3 &v) { return v.x; }, box.min.x + (i+1)*(extent.x/(current_number_of_planes+1)));
+		}
+	}
+	else if(largest == extent.y) {
+		for (int i = 0; i < current_number_of_planes; ++i) {
+			split([](const vec3 &v) { return v.y; }, box.min.y + (i+1)*(extent.y/(current_number_of_planes+1)));
+		}
+	}
+	else {
+		for (int i = 0; i < current_number_of_planes; ++i) {
+			split([](const vec3 &v) { return v.z; }, box.min.z + (i+1)*(extent.z/(current_number_of_planes+1)));
+		}
+	}
+	if (max_triangles_per_node > 1) {
+		if ((K_I*(end - start)) < (K_T + K_I*(sah_cost_left + sah_cost_right)) && (end - start) <= max_triangles_per_node) {
+			uint32_t id = nodes.size();
+			nodes.emplace_back();
+			nodes[id].tri_offset(start);
+			nodes[id].tri_count(end - start);
+			return id;
+		}
+	}
+	uint32_t id = nodes.size();
+	nodes.emplace_back();
+	uint32_t l = subdivide_sah(prims, index, start, mid);
+	uint32_t r = subdivide_sah(prims, index, mid,   end);
+	nodes[id].link_l = l;
+	nodes[id].link_r = r;
+	nodes[id].box_l = box_l;
+	nodes[id].box_r = box_r;
+	return id;
+	// std::logic_error("Not implemented, yet");
+	// return 0;
 }
 
 template<bbvh_triangle_layout tr_layout, bbvh_esc_mode esc_mode>
 triangle_intersection binary_bvh_tracer<tr_layout, esc_mode>::closest_hit(const ray &ray) {
-	time_this_block(closest_hit);
 	// todo
-	std::logic_error("Not implemented, yet");
-	return triangle_intersection();
+	time_this_block(closest_hit);
+	triangle_intersection closest, intersection;
+	uint32_t stack[25];
+	int32_t sp = 0;
+	stack[0] = root;
+#ifdef COUNT_HITS
+	unsigned int hits = 0;
+#endif
+	while (sp >= 0) {
+		node node = nodes[stack[sp--]];
+#ifdef COUNT_HITS
+		hits++;
+#endif
+		if (node.inner()) {
+			float dist_l, dist_r;
+			bool hit_l = intersect4(node.box_l, ray, dist_l) && dist_l < closest.t;
+			bool hit_r = intersect4(node.box_r, ray, dist_r) && dist_r < closest.t;
+			if (hit_l && hit_r)
+				if (dist_l < dist_r) {
+					stack[++sp] = node.link_r;
+					stack[++sp] = node.link_l;
+				}
+				else {
+					stack[++sp] = node.link_l;
+					stack[++sp] = node.link_r;
+				}
+			else if (hit_l)
+				stack[++sp] = node.link_l;
+			else if (hit_r)
+				stack[++sp] = node.link_r;
+		}
+		else {
+			for (int i = 0; i < node.tri_count(); ++i) {
+				int tri_idx = triangle_index(node.tri_offset()+i);
+				if (intersect(scene->triangles[tri_idx], scene->vertices.data(), ray, intersection))
+					if (intersection.t < closest.t) {
+						closest = intersection;
+						closest.ref = tri_idx;
+					}
+			}
+		}
+	}
+#ifdef COUNT_HITS
+	closest.ref = hits;
+#endif
+	return closest;
+	// std::logic_error("Not implemented, yet");
+	// return triangle_intersection();
 }
 
 template<bbvh_triangle_layout tr_layout, bbvh_esc_mode esc_mode>
 bool binary_bvh_tracer<tr_layout, esc_mode>::any_hit(const ray &ray) {
 	time_this_block(any_hit);
-	// todo
-	std::logic_error("Not implemented, yet");
+	triangle_intersection intersection;
+	uint32_t stack[25];
+	int32_t sp = 0;
+	stack[0] = root;
+	while (sp >= 0) {
+		node node = nodes[stack[sp--]];
+		if (node.inner()) {
+			float dist_l, dist_r;
+			bool hit_l = intersect4(node.box_l, ray, dist_l);
+			bool hit_r = intersect4(node.box_r, ray, dist_r);
+			if (hit_l && hit_r)
+				if (dist_l < dist_r) {
+					stack[++sp] = node.link_r;
+					stack[++sp] = node.link_l;
+				}
+				else {
+					stack[++sp] = node.link_l;
+					stack[++sp] = node.link_r;
+				}
+			else if (hit_l)
+				stack[++sp] = node.link_l;
+			else if (hit_r)
+				stack[++sp] = node.link_r;
+		}
+		else {
+			for (int i = 0; i < node.tri_count(); ++i) {
+				int tri_idx = triangle_index(node.tri_offset()+i);
+				if (intersect(scene->triangles[tri_idx], scene->vertices.data(), ray, intersection))
+					return true;
+			}
+		}
+	}
 	return false;
+	// std::logic_error("Not implemented, yet");
+	// return false;
 }
 
 template<bbvh_triangle_layout tr_layout, bbvh_esc_mode esc_mode>
