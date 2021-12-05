@@ -6,7 +6,7 @@ look 1 0 0
 up 0 1 0
 
 
-default-brdf lambert
+default-brdf layered-gtr2
 
 
 load render-data/sibenik/sibenik.obj

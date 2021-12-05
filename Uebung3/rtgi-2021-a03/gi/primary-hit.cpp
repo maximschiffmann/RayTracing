@@ -41,7 +41,16 @@ gi_algorithm::sample_result local_illumination::sample_pixel(uint32_t x, uint32_
 			pointlight *pl = dynamic_cast<pointlight*>(rc->scene.lights[0]);
 			assert(pl);
 			// todo: implement local illumination via the BRDF
-			radiance = dg.albedo();
+			vec3 to_light = pl->pos - dg.x;
+			vec3 w_i = normalize(to_light);
+			vec3 w_o = -view_ray.d;
+			float d = sqrt(dot(to_light, to_light));
+
+			ray shadow_ray(dg.x, w_i);
+			shadow_ray.length_exclusive(d);
+			if (!rc->scene.single_rt->any_hit(shadow_ray)) {
+				radiance = pl->power() * brdf->f(dg, w_o, w_i) / (d*d);
+			}
 		}
 		result.push_back({radiance,vec2(0)});
 	}
