@@ -56,7 +56,7 @@ vec3 direct_light::sample_uniformly(const diff_geom &hit, const ray &view_ray)
 	vec3 sampled_dir = vec3(sin_theta * cosf(phi),
 							sin_theta * sinf(phi),
 							z);
-
+	// dreht die ausrichtung
 	vec3 w_i = align(sampled_dir, hit.ng);
 	ray sample_ray(hit.x, w_i);
 

@@ -22,7 +22,7 @@ vec3 lambertian_reflection::f(const diff_geom &geom, const vec3 &w_o, const vec3
 
 
 // specular_reflection
-
+// https://www.youtube.com/watch?v=eo_MTI-d28s
 vec3 phong_specular_reflection::f(const diff_geom &geom, const vec3 &w_o, const vec3 &w_i) {
 	if (!same_hemisphere(w_i, geom.ng)) return vec3(0);
 	float exponent = exponent_from_roughness(geom.mat->roughness);
